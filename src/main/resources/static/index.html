@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charizard (EX) Price Tracker</title>
+    <title>Charizard ITA Price Tracker</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
@@ -118,7 +118,7 @@
 
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 16px;
             margin-top: 20px;
         }
@@ -137,7 +137,7 @@
         }
 
         .stat-value {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: 700;
         }
 
@@ -156,13 +156,19 @@
             color: #166534;
         }
 
-        @media (max-width: 800px) {
+        @media (max-width: 900px) {
             .stats {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
             }
 
             .chart-wrapper {
                 height: 320px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stats {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -171,8 +177,8 @@
 <div class="page">
     <div class="hero">
         <div class="hero-text">
-            <h1>Charizard (EX) Price Tracker</h1>
-            <p>Storico delle medie calcolate per le offerte del Charizard Set Base in condizione EX, escludendo i 3 prezzi più alti.</p>
+            <h1>Charizard ITA Tracker</h1>
+            <p>Storico delle medie calcolate per le condizioni EX e NM, escludendo i 3 prezzi più alti.</p>
         </div>
 
         <button id="calculateBtn" class="calculate-btn">CALCOLA</button>
@@ -181,8 +187,8 @@
     <div class="card chart-card">
         <div class="chart-header">
             <div>
-                <div class="chart-title">Andamento della media</div>
-                <div class="chart-subtitle">Date sulle ascisse, prezzo medio sulle ordinate</div>
+                <div class="chart-title">Andamento delle medie</div>
+                <div class="chart-subtitle">Due linee: una per EX e una per NM</div>
             </div>
         </div>
 
@@ -196,8 +202,12 @@
                 <div class="stat-value" id="totalPoints">0</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Ultima media</div>
-                <div class="stat-value" id="lastAverage">-</div>
+                <div class="stat-label">Ultima media EX</div>
+                <div class="stat-value" id="lastExAverage">-</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Ultima media NM</div>
+                <div class="stat-value" id="lastNmAverage">-</div>
             </div>
             <div class="stat-box">
                 <div class="stat-label">Ultimo aggiornamento</div>
@@ -211,7 +221,7 @@
 
 <script>
     const historyUrl = '/api/scraping/cardmarket/history';
-    const calculateUrl = '/api/scraping/cardmarket/ex-average';
+    const calculateUrl = '/api/scraping/cardmarket/calculate';
 
     let priceChart = null;
 
@@ -224,7 +234,7 @@
     }
 
     function formatPrice(value) {
-        if (value === null || value === undefined) {
+        if (value === null || value === undefined || Number.isNaN(value)) {
             return '-';
         }
 
@@ -248,7 +258,12 @@
 
     function buildChart(history) {
         const labels = history.map(item => formatDateTime(item.calculatedAt));
-        const data = history.map(item => Number(item.averagePrice));
+        const exData = history.map(item =>
+            item.exAveragePrice !== null ? Number(item.exAveragePrice) : null
+        );
+        const nmData = history.map(item =>
+            item.nmAveragePrice !== null ? Number(item.nmAveragePrice) : null
+        );
 
         const ctx = document.getElementById('priceChart').getContext('2d');
 
@@ -260,19 +275,40 @@
             type: 'line',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Prezzo medio',
-                    data: data,
-                    borderWidth: 2,
-                    tension: 0.25,
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
-                    fill: false
-                }]
+                datasets: [
+                    {
+                        label: 'Media EX',
+                        data: exData,
+                        borderColor: '#2563eb',
+                        backgroundColor: '#2563eb',
+                        borderWidth: 2,
+                        tension: 0.25,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        spanGaps: true,
+                        fill: false
+                    },
+                    {
+                        label: 'Media NM',
+                        data: nmData,
+                        borderColor: '#10b981',
+                        backgroundColor: '#10b981',
+                        borderWidth: 2,
+                        tension: 0.25,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        spanGaps: true,
+                        fill: false
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: {
                         display: true
@@ -280,7 +316,7 @@
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'Media: ' + formatPrice(context.parsed.y);
+                                return context.dataset.label + ': ' + formatPrice(context.parsed.y);
                             }
                         }
                     }
@@ -305,19 +341,29 @@
 
     function updateStats(history) {
         const totalPointsEl = document.getElementById('totalPoints');
-        const lastAverageEl = document.getElementById('lastAverage');
+        const lastExAverageEl = document.getElementById('lastExAverage');
+        const lastNmAverageEl = document.getElementById('lastNmAverage');
         const lastDateEl = document.getElementById('lastDate');
 
         totalPointsEl.textContent = history.length;
 
         if (history.length === 0) {
-            lastAverageEl.textContent = '-';
+            lastExAverageEl.textContent = '-';
+            lastNmAverageEl.textContent = '-';
             lastDateEl.textContent = '-';
             return;
         }
 
         const lastItem = history[history.length - 1];
-        lastAverageEl.textContent = formatPrice(Number(lastItem.averagePrice));
+
+        lastExAverageEl.textContent = formatPrice(
+            lastItem.exAveragePrice !== null ? Number(lastItem.exAveragePrice) : null
+        );
+
+        lastNmAverageEl.textContent = formatPrice(
+            lastItem.nmAveragePrice !== null ? Number(lastItem.nmAveragePrice) : null
+        );
+
         lastDateEl.textContent = formatDateTime(lastItem.calculatedAt);
     }
 
@@ -339,20 +385,20 @@
         }
     }
 
-    async function calculateAverage() {
+    async function calculateAverages() {
         const button = document.getElementById('calculateBtn');
         button.disabled = true;
-        setMessage('Calcolo in corso...');
+        setMessage('Calcolo di EX e NM in corso...');
 
         try {
             const response = await fetch(calculateUrl);
             if (!response.ok) {
-                throw new Error('Errore durante il calcolo della media');
+                throw new Error('Errore durante il calcolo delle medie');
             }
 
             await response.json();
             await refreshChartAndStats();
-            setMessage('Nuova media calcolata e grafico aggiornato.', 'success');
+            setMessage('Nuove medie calcolate e grafico aggiornato.', 'success');
         } catch (error) {
             console.error(error);
             setMessage('Si è verificato un errore durante il calcolo o il refresh dei dati.', 'error');
@@ -361,7 +407,7 @@
         }
     }
 
-    document.getElementById('calculateBtn').addEventListener('click', calculateAverage);
+    document.getElementById('calculateBtn').addEventListener('click', calculateAverages);
 
     window.addEventListener('load', async () => {
         try {

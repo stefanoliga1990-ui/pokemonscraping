@@ -20,11 +20,11 @@ public class CardMarketScheduledJob {
     @Scheduled(cron = "${app.scraping.cron:0 0 12 * * *}", zone = "${app.scraping.zone:Europe/Rome}")
     public void calculateDailyAverage() {
         try {
-            log.info("Avvio calcolo schedulato della media...");
-            scrapingService.scrapeExAverage(null);
+            log.info("Avvio calcolo schedulato di EX e NM...");
+            scrapingService.calculateAverages(null);
             log.info("Calcolo schedulato completato con successo.");
         } catch (Exception e) {
-            log.error("Errore durante il calcolo schedulato della media", e);
+            log.error("Errore durante il calcolo schedulato", e);
         }
     }
 }

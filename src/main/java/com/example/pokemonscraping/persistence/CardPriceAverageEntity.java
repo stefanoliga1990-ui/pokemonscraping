@@ -16,8 +16,11 @@ public class CardPriceAverageEntity {
     @Column(name = "source_url", nullable = false, length = 1000)
     private String sourceUrl;
 
-    @Column(name = "average_price", nullable = false, precision = 19, scale = 2)
-    private BigDecimal averagePrice;
+    @Column(name = "ex_average_price", precision = 19, scale = 2)
+    private BigDecimal exAveragePrice;
+
+    @Column(name = "nm_average_price", precision = 19, scale = 2)
+    private BigDecimal nmAveragePrice;
 
     @Column(name = "calculated_at", nullable = false)
     private LocalDateTime calculatedAt;
@@ -30,8 +33,12 @@ public class CardPriceAverageEntity {
         return sourceUrl;
     }
 
-    public BigDecimal getAveragePrice() {
-        return averagePrice;
+    public BigDecimal getExAveragePrice() {
+        return exAveragePrice;
+    }
+
+    public BigDecimal getNmAveragePrice() {
+        return nmAveragePrice;
     }
 
     public LocalDateTime getCalculatedAt() {
@@ -46,8 +53,12 @@ public class CardPriceAverageEntity {
         this.sourceUrl = sourceUrl;
     }
 
-    public void setAveragePrice(BigDecimal averagePrice) {
-        this.averagePrice = averagePrice;
+    public void setExAveragePrice(BigDecimal exAveragePrice) {
+        this.exAveragePrice = exAveragePrice;
+    }
+
+    public void setNmAveragePrice(BigDecimal nmAveragePrice) {
+        this.nmAveragePrice = nmAveragePrice;
     }
 
     public void setCalculatedAt(LocalDateTime calculatedAt) {

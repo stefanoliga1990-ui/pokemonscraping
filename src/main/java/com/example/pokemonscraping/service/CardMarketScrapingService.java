@@ -3,6 +3,7 @@ package com.example.pokemonscraping.service;
 import com.example.pokemonscraping.client.CardMarketHtmlClient;
 import com.example.pokemonscraping.model.CardOffer;
 import com.example.pokemonscraping.model.CardPriceAverageResponse;
+import com.example.pokemonscraping.model.ConditionAverageResult;
 import com.example.pokemonscraping.persistence.CardPriceAverageEntity;
 import com.example.pokemonscraping.persistence.CardPriceAverageRepository;
 import com.example.pokemonscraping.parser.CardMarketOfferParser;
@@ -36,7 +37,7 @@ public class CardMarketScrapingService {
     }
 
     @Transactional
-    public CardPriceAverageResponse scrapeExAverage(String url) throws IOException {
+    public CardPriceAverageResponse calculateAverages(String url) throws IOException {
         String effectiveUrl = (url == null || url.isBlank()) ? DEFAULT_URL : url;
 
         Document document = htmlClient.fetch(effectiveUrl);
@@ -44,30 +45,15 @@ public class CardMarketScrapingService {
         int totalRowsFound = offerParser.countArticleRows(document);
         List<CardOffer> offers = offerParser.extractOffers(document);
 
-        List<BigDecimal> exPrices = offers.stream()
-                .filter(offer -> "EX".equalsIgnoreCase(offer.condition()))
-                .map(CardOffer::price)
-                .sorted()
-                .toList();
+        ConditionAverageResult exResult = calculateForCondition(offers, "EX");
+        ConditionAverageResult nmResult = calculateForCondition(offers, "NM");
 
-        List<BigDecimal> excludedHighestPrices = exPrices.stream()
-                .sorted(Comparator.reverseOrder())
-                .limit(3)
-                .sorted()
-                .toList();
-
-        List<BigDecimal> usedForAveragePrices = exPrices.stream()
-                .sorted(Comparator.reverseOrder())
-                .skip(3)
-                .sorted()
-                .toList();
-
-        BigDecimal averagePrice = calculateAverage(usedForAveragePrices);
         LocalDateTime calculatedAt = LocalDateTime.now();
 
         CardPriceAverageEntity entity = new CardPriceAverageEntity();
         entity.setSourceUrl(effectiveUrl);
-        entity.setAveragePrice(averagePrice);
+        entity.setExAveragePrice(exResult.averagePrice());
+        entity.setNmAveragePrice(nmResult.averagePrice());
         entity.setCalculatedAt(calculatedAt);
 
         averageRepository.save(entity);
@@ -75,17 +61,45 @@ public class CardMarketScrapingService {
         return new CardPriceAverageResponse(
                 effectiveUrl,
                 totalRowsFound,
-                exPrices.size(),
-                exPrices,
-                excludedHighestPrices,
-                usedForAveragePrices,
-                averagePrice,
-                calculatedAt
+                calculatedAt,
+                exResult,
+                nmResult
         );
     }
 
     public List<CardPriceAverageEntity> getHistory() {
         return averageRepository.findAllByOrderByCalculatedAtAsc();
+    }
+
+    private ConditionAverageResult calculateForCondition(List<CardOffer> offers, String condition) {
+        List<BigDecimal> prices = offers.stream()
+                .filter(offer -> condition.equalsIgnoreCase(offer.condition()))
+                .map(CardOffer::price)
+                .sorted()
+                .toList();
+
+        List<BigDecimal> excludedHighestPrices = prices.stream()
+                .sorted(Comparator.reverseOrder())
+                .limit(3)
+                .sorted()
+                .toList();
+
+        List<BigDecimal> usedForAveragePrices = prices.stream()
+                .sorted(Comparator.reverseOrder())
+                .skip(3)
+                .sorted()
+                .toList();
+
+        BigDecimal averagePrice = calculateAverage(usedForAveragePrices);
+
+        return new ConditionAverageResult(
+                condition,
+                prices.size(),
+                prices,
+                excludedHighestPrices,
+                usedForAveragePrices,
+                averagePrice
+        );
     }
 
     private BigDecimal calculateAverage(List<BigDecimal> prices) {

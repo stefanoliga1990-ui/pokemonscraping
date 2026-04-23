@@ -23,10 +23,10 @@ public class CardMarketScrapingController {
         this.scrapingService = scrapingService;
     }
 
-    @GetMapping("/ex-average")
-    public CardPriceAverageResponse getExAverage(@RequestParam(required = false) String url) {
+    @GetMapping("/calculate")
+    public CardPriceAverageResponse calculate(@RequestParam(required = false) String url) {
         try {
-            return scrapingService.scrapeExAverage(url);
+            return scrapingService.calculateAverages(url);
         } catch (IOException e) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
