@@ -1,0 +1,23 @@
+{
+  "array": [
+    {
+      "id": 73,
+      "name": "Pokemon Single Cards",
+      "game_id": 5,
+      "properties": [
+        {
+          "name": "condition",
+          "type": "string",
+          "default_value": "Near Mint",
+          "possible_values": ["Near Mint", "Slightly Played", "Played"]
+        },
+        {
+          "name": "first_edition",
+          "type": "boolean",
+          "default_value": false,
+          "possible_values": [true, false]
+        }
+      ]
+    }
+  ]
+}

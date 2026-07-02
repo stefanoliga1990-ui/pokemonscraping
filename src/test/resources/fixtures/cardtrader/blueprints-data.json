@@ -1,0 +1,21 @@
+{
+  "data": [
+    {
+      "id": 111151,
+      "name": "Charizard",
+      "version": "Holo Rare | 4/102",
+      "game_id": 5,
+      "category_id": 73,
+      "expansion_id": 1472,
+      "image_url": "https://example.test/charizard.jpg",
+      "editable_properties": [
+        {
+          "name": "pokemon_language",
+          "type": "string",
+          "default_value": "en",
+          "possible_values": ["en", "it"]
+        }
+      ]
+    }
+  ]
+}
