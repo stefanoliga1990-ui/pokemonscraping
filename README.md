@@ -4,7 +4,15 @@ Spring Boot application for monitoring Pokemon card prices through the CardTrade
 
 ## Local configuration
 
-The CardTrader JWT must be provided through the `CARDTRADER_API_TOKEN` environment variable. Never store the token in source files.
+The CardTrader JWT can be stored locally in `secrets/application-secrets.properties`:
+
+```properties
+CARDTRADER_API_TOKEN_FILE_VALUE=your-token
+```
+
+This file is loaded automatically when the application starts from the project root. It is ignored by Git and is not packaged in the application JAR. Never put the real token in `application.properties` or in the `.example` file.
+
+Alternatively, the `CARDTRADER_API_TOKEN` environment variable can be used and takes precedence over the local secrets file.
 
 PowerShell example, after copying the token to the clipboard:
 
